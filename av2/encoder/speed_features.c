@@ -410,6 +410,7 @@ static void set_good_speed_features_framesize_independent(
 
     sf->part_sf.partition_pruning_with_mlp = 1;
     sf->part_sf.partition_pruning_with_mlp_none_thresh = 3.5f;
+    sf->part_sf.disable_uneven_4way_partitions = true;
     sf->lpf_sf.enable_deblock_for_partition_search = 1;
   }
 
