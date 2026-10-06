@@ -732,6 +732,9 @@ typedef struct INTER_MODE_SPEED_FEATURES {
   // Disable interinter_wedge
   int disable_interinter_wedge;
 
+  // Disable one-sided compound (both refs on the same temporal side).
+  bool disable_onesided_comp;
+
   // Whether to override and disable sb level coeff cost updates, if
   // cpi->oxcf.cost_upd_freq.coeff = COST_UPD_SB (i.e. set at SB level)
   int disable_sb_level_coeff_cost_upd;
