@@ -1242,6 +1242,16 @@ typedef struct {
   int warped_probs[FRAME_UPDATE_TYPES];
 
   /*!
+   * warp_usage[i] is the fraction (in units of 1/WARP_USAGE_SCALE) of the
+   * warp-eligible area won by warp modes for the ith frame update type,
+   * averaged over past frames at pyramid level >= the gate level on which warp
+   * was not gated. warp_usage_frames[i] is the number of such frames. Used by
+   * sf->inter_sf.warp_usage_gate_*.
+   */
+  int warp_usage[FRAME_UPDATE_TYPES];
+  int warp_usage_frames[FRAME_UPDATE_TYPES];
+
+  /*!
    * tx_type_probs[i][j][k] is the probability of kth tx_type being the best
    * for jth transform size and ith frame update type, averaged over past
    * frames. If tx_type_probs[i][j][k] < thresh, then transform search for that
@@ -1709,6 +1719,11 @@ typedef struct TileDataEnc {
   MV firstpass_top_mv;
 } TileDataEnc;
 
+// Scale of the warp usage statistic (FrameProbInfo::warp_usage).
+#define WARP_USAGE_SCALE 128
+// Number of frames of statistics needed before the warp usage gate may fire.
+#define WARP_USAGE_GATE_MIN_FRAMES 2
+
 typedef struct RD_COUNTS {
   int64_t comp_pred_diff[REFERENCE_MODES];
   int compound_ref_used_flag;
@@ -1719,6 +1734,11 @@ typedef struct RD_COUNTS {
   // of those that use it. Used by sf->inter_sf.prune_bawp_by_gop_usage.
   int64_t bawp_eligible_area;
   int64_t bawp_used_area;
+  // Luma area (in 4x4 units) of the final coded inter blocks that could use
+  // warp, and of those that use a warp motion mode. Used by
+  // sf->inter_sf.warp_usage_gate_*.
+  int64_t warp_eligible_area;
+  int64_t warp_used_area;
 } RD_COUNTS;
 
 typedef struct ThreadData {

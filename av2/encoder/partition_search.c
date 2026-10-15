@@ -1824,6 +1824,21 @@ static void encode_b(const AV2_COMP *const cpi, TileDataEnc *tile_data,
       if (mbmi->bawp_flag[0]) td->rd_counts.bawp_used_area += area;
     }
 
+    // Warp usage by area, over the inter blocks that could have used warp (and
+    // the warp winners), for sf->inter_sf.warp_usage_gate_*.
+    if (cpi->sf.inter_sf.warp_usage_gate_min_pyr_level > 0 &&
+        !frame_is_intra_only(cm) && xd->tree_type != CHROMA_PART &&
+        is_inter_block(mbmi, xd->tree_type) &&
+        !is_intrabc_block(mbmi, xd->tree_type)) {
+      const BLOCK_SIZE bs = mbmi->sb_type[PLANE_TYPE_Y];
+      const int is_warp_winner = mbmi->motion_mode >= WARP_CAUSAL;
+      if (is_warp_winner || is_warp_newmv_allowed(cm, xd, mbmi, bs)) {
+        const int64_t area = (block_size_wide[bs] * block_size_high[bs]) >> 4;
+        td->rd_counts.warp_eligible_area += area;
+        if (is_warp_winner) td->rd_counts.warp_used_area += area;
+      }
+    }
+
     // Gather warped motion count to update the probability.
     if (cpi->sf.inter_sf.prune_warped_prob_thresh > 0 ||
         cpi->sf.inter_sf.prune_warpmv_prob_thresh > 0) {

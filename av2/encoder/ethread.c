@@ -42,6 +42,8 @@ static AVM_INLINE void accumulate_rd_opt(ThreadData *td, ThreadData *td_t) {
   }
   td->rd_counts.bawp_eligible_area += td_t->rd_counts.bawp_eligible_area;
   td->rd_counts.bawp_used_area += td_t->rd_counts.bawp_used_area;
+  td->rd_counts.warp_eligible_area += td_t->rd_counts.warp_eligible_area;
+  td->rd_counts.warp_used_area += td_t->rd_counts.warp_used_area;
 }
 
 void av2_row_mt_sync_read_dummy(AV2EncRowMultiThreadSync *row_mt_sync, int r,

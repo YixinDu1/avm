@@ -834,6 +834,15 @@ typedef struct INTER_MODE_SPEED_FEATURES {
   // Prune warpmv with mvd search using previous frame stats.
   int prune_warpmv_prob_thresh;
 
+  // Frame-level warp gate driven by measured warp usage. On frames at pyramid
+  // level >= warp_usage_gate_min_pyr_level, WARP_NEWMV, WARPMV and compound
+  // WARP_CAUSAL are disabled when, on earlier frames of the same frame update
+  // type, warp winners covered less than warp_usage_gate_thresh (in units of
+  // 1/WARP_USAGE_SCALE) of the area of the blocks that could use warp.
+  // 0: off
+  int warp_usage_gate_min_pyr_level;
+  int warp_usage_gate_thresh;
+
   // Only enable wedge search if the variance is above this threshold.
   unsigned int disable_wedge_search_var_thresh;
 

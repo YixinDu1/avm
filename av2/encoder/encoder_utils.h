@@ -850,6 +850,8 @@ static AVM_INLINE void copy_frame_prob_info(AV2_COMP *cpi) {
       cpi->sf.inter_sf.prune_warpmv_prob_thresh > 0) {
     av2_copy(frame_probs->warped_probs, av2_default_warped_probs);
   }
+  av2_zero(frame_probs->warp_usage);
+  av2_zero(frame_probs->warp_usage_frames);
 }
 
 static AVM_INLINE int combine_prior_with_tpl_boost(double min_factor,

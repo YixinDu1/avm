@@ -2275,6 +2275,8 @@ static AVM_INLINE void encode_frame_internal(AV2_COMP *cpi) {
   av2_zero(rdc->warped_used);
   rdc->bawp_eligible_area = 0;
   rdc->bawp_used_area = 0;
+  rdc->warp_eligible_area = 0;
+  rdc->warp_used_area = 0;
 
   for (i = 0; i < CCSO_NUM_COMPONENTS; ++i) {
     cm->ccso_info.ccso_frame_flag = 0;
@@ -2317,6 +2319,35 @@ static AVM_INLINE void encode_frame_internal(AV2_COMP *cpi) {
     if (frame_probs->warped_probs[update_type] <
         cpi->sf.inter_sf.prune_warpmv_prob_thresh) {
       features->allow_warpmv_mode = 0;
+    }
+  }
+
+  // Usage-driven warp gate: on deep pyramid levels, turn WARP_NEWMV, WARPMV
+  // and compound WARP_CAUSAL off once earlier frames of the same update type
+  // have shown that warp winners cover little of the warp-eligible area. The
+  // statistic is only measured on frames with warp enabled (see below), so
+  // frames without statistics keep the full search.
+  const int warp_usage_gate_level =
+      cpi->sf.inter_sf.warp_usage_gate_min_pyr_level;
+  const int warp_usage_applies =
+      warp_usage_gate_level > 0 && !frame_is_intra_only(cm) &&
+      (int)cm->current_frame.pyramid_level >= warp_usage_gate_level;
+  int warp_usage_measure = 0;
+  if (warp_usage_applies) {
+    const FRAME_UPDATE_TYPE update_type = get_frame_update_type(&cpi->gf_group);
+    if (frame_probs->warp_usage_frames[update_type] >=
+            WARP_USAGE_GATE_MIN_FRAMES &&
+        frame_probs->warp_usage[update_type] <
+            cpi->sf.inter_sf.warp_usage_gate_thresh) {
+      // The frame header only carries the frame-level motion mode flags when
+      // seq_frame_motion_modes_present_flag is set; otherwise the decoder
+      // assumes the sequence-level modes, so they must not be changed.
+      if (cm->seq_params.seq_frame_motion_modes_present_flag) {
+        features->enabled_motion_modes &= ~(1 << WARP_CAUSAL);
+      }
+      features->allow_warpmv_mode = 0;
+    } else {
+      warp_usage_measure = features->allow_warpmv_mode;
     }
   }
 
@@ -2573,6 +2604,18 @@ static AVM_INLINE void encode_frame_internal(AV2_COMP *cpi) {
     const int new_prob = sum ? 128 * cpi->td.rd_counts.warped_used[1] / sum : 0;
     frame_probs->warped_probs[update_type] =
         (frame_probs->warped_probs[update_type] + new_prob) >> 1;
+  }
+
+  // Warp usage of this frame, for the later frames of the same update type.
+  if (warp_usage_measure && rdc->warp_eligible_area > 0) {
+    const FRAME_UPDATE_TYPE update_type = get_frame_update_type(&cpi->gf_group);
+    const int new_usage =
+        (int)(WARP_USAGE_SCALE * rdc->warp_used_area / rdc->warp_eligible_area);
+    frame_probs->warp_usage[update_type] =
+        frame_probs->warp_usage_frames[update_type] == 0
+            ? new_usage
+            : (frame_probs->warp_usage[update_type] + new_usage) >> 1;
+    frame_probs->warp_usage_frames[update_type]++;
   }
 
   if ((!is_stat_generation_stage(cpi) && av2_use_hash_me(cpi)) ||
